@@ -1,0 +1,21 @@
+# 개발용: 코드 수정이 바로 반영되도록 소스를 마운트하고 핫 리로드로 띄운다.
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  backend:
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+      - uploads:/data/uploads
+
+  frontend:
+    build: !reset null
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      BACKEND_URL: http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports: !override
+      - "5173:5173"

@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: chalkak
+      POSTGRES_USER: chalkak
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chalkak}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chalkak -d chalkak"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        INSTALL_DEV: "true"   # 컨테이너 안에서 pytest 를 돌릴 수 있게
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://chalkak:${POSTGRES_PASSWORD:-chalkak}@db:5432/chalkak
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"   # API 문서: http://localhost:8000/docs
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"     # 서비스 화면: http://localhost:8080
+
+volumes:
+  pgdata:
+  uploads:
